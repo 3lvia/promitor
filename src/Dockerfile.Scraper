@@ -1,8 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:5.0-alpine AS build
 WORKDIR /src
-ARG VERSION="UNSET-VERSION"
 COPY . .
-RUN dotnet publish Promitor.Agents.Scraper/Promitor.Agents.Scraper.csproj --configuration release --output app /p:Version=$VERSION
+RUN dotnet publish Promitor.Agents.Scraper/Promitor.Agents.Scraper.csproj --configuration release --output app
 
 FROM mcr.microsoft.com/dotnet/aspnet:3.1-alpine AS runtime
 WORKDIR /app
@@ -12,4 +11,4 @@ COPY --from=build /src/app .
 
 ENTRYPOINT ["dotnet", "Promitor.Agents.Scraper.dll"]
 
-# docker build . --file ./Promitor.Agents.Scraper/Dockerfile.linux --tag promitor-agent-scraper --build-arg VERSION=2.4.1 --no-cache
+# docker build . --file ./Promitor.Agents.Scraper/Dockerfile.linux --tag promitor-agent-scraper --no-cache
