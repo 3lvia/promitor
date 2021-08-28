@@ -19,4 +19,4 @@ stages:
   jobs:
   - template: build.yaml@templates
     parameters:
-      dockerfile: src/Promitor.Agents.Scraper/Dockerfile.linux
+      dockerfile: src/Dockerfile.Scraper
