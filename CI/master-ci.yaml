@@ -1,5 +1,5 @@
 trigger:
-  - trunk
+  - master
 
 variables:
   containerregistry: 'ContainerRegistryElvia'
