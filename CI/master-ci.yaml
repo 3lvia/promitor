@@ -1,0 +1,22 @@
+trigger:
+  - trunk
+
+variables:
+  containerregistry: 'ContainerRegistryElvia'
+  imagetag: $(Build.BuildNumber)
+  name: promitor-agents-scraper
+  namespace: monitoring
+
+resources:
+  repositories:
+  - repository: templates
+    type: github
+    name: 3lvia/core-azure-devops-templates
+    endpoint: 3lvia
+  
+stages:
+- stage: Build
+  jobs:
+  - template: build.yaml@templates
+    parameters:
+      dockerfile: src/Promitor.Agents.Scraper/Dockerfile.linux
