@@ -1,0 +1,22 @@
+trigger:
+  - master
+
+variables:
+  containerregistry: 'ContainerRegistryElvia'
+  imagetag: $(Build.BuildNumber)
+  name: promitor-agent-resource-discovery
+  namespace: monitoring
+
+resources:
+  repositories:
+  - repository: templates
+    type: github
+    name: 3lvia/core-azure-devops-templates
+    endpoint: 3lvia
+  
+stages:
+- stage: Build
+  jobs:
+  - template: build.yaml@templates
+    parameters:
+      dockerfile: src/Dockerfile.ResourceDiscovery
