@@ -6,8 +6,8 @@ version:
 
 #### Scraper
 
-None.
+None at the moment.
 
 #### Resource Discovery
 
-None.
+None at the moment.

@@ -16,9 +16,6 @@
 </p>
 
 **Promitor** is an Azure Monitor scraper which makes the metrics available through a scraping endpoint for Prometheus or push to a StatsD server.
-<!-- markdownlint-enable -->
-
-<!-- markdownlint-disable MD002 -->
 
 ## Documentation
 
@@ -28,8 +25,10 @@ All documentation is available on [promitor.io](https://docs.promitor.io)
 
 We are proud to have the following end-users(s) running Promitor in production:
 
+![Adfinis](./docs/media/logos/end-users/adfinis.png)
 ![Adobe](./docs/media/logos/end-users/adobe.png)
 ![Albert Heijn](./docs/media/logos/end-users/albert-heijn.png)
+![Axon](./docs/media/logos/end-users/axon.png)
 ![Bryte Blue](./docs/media/logos/end-users/bryte-blue.png)
 ![ResDiary](./docs/media/logos/end-users/resdiary.png)
 ![theTradeDesk](./docs/media/logos/end-users/the-trade-desk.png)
@@ -47,7 +46,11 @@ welcome bug reports, improvement suggestions and pull requests.
 Want to see support for a scraper that is not [already supported](https://docs.promitor.io/configuration/v2.x/metrics/#supported-azure-services)?
 You can contribute by [adding one yourself](adding-a-new-scraper.md)!
 
-Information about making changes to Promitor can be found [here](development-guide.md).
+Information about making changes to Promitor can be found [here](contributing.md).
+
+### Testing Infrastructure
+
+Our testing infrastructure is managed through Bicep and is open to contributions on [promitor/testing-infrastructure](https://github.com/promitor/testing-infrastructure).
 
 ## Support
 
@@ -68,12 +71,16 @@ Thanks for those who are supporting us via [GitHub Sponsors](https://github.com/
 
 Learn more about our security policy [here](https://github.com/tomkerkhove/promitor/security/policy).
 
+## Performance
+
+Learn more about our performance tests [here](tests/README.md).
+
 ## Donate
 
 Promitor is fully OSS and built free-of-charge, however, if you appreciate my work
 you can do a small donation.
 
-[![Donate](https://img.shields.io/badge/Donate%20via-GitHub-blue.svg?style=flat-square)](https://github.com/users/tomkerkhove/sponsorship)
+[![Donate](https://img.shields.io/badge/Donate%20via-GitHub-blue.svg?style=flat-square)](https://github.com/sponsors/promitor)
 
 ## Get in touch
 

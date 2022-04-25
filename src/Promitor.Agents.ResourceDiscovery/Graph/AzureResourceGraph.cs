@@ -57,42 +57,47 @@ namespace Promitor.Agents.ResourceDiscovery.Graph
             _azureAuthenticationInfo = AzureAuthenticationFactory.GetConfiguredAzureAuthentication(configuration);
         }
 
-        public async Task<JObject> QueryAzureLandscapeAsync(string queryName, string query)
+        public async Task<PagedQueryResult> QueryAzureLandscapeAsync(string queryName, string query, int pageSize, int currentPage)
         {
             Guard.NotNullOrWhitespace(query, nameof(query));
 
-            var queryResponse = await QueryAsync(queryName, query, targetSubscriptions: null);
-            return queryResponse.Data as JObject;
+            var queryResponse = await QueryAsync(queryName, query, pageSize, currentPage, targetSubscriptions: null);
+            return new PagedQueryResult(queryResponse.Data as JObject, queryResponse.TotalRecords, currentPage, pageSize);
         }
 
-        public async Task<JObject> QueryTargetSubscriptionsAsync(string queryName, string query)
+        public async Task<PagedQueryResult> QueryTargetSubscriptionsAsync(string queryName, string query, int pageSize, int currentPage)
         {
             Guard.NotNullOrWhitespace(query, nameof(query));
 
-            var queryResponse = await QueryAsync(queryName, query, Subscriptions);
-            return queryResponse.Data as JObject;
+            var queryResponse = await QueryAsync(queryName, query, pageSize, currentPage, Subscriptions);
+            
+            return new PagedQueryResult(queryResponse.Data as JObject, queryResponse.TotalRecords, currentPage, pageSize);
         }
 
-        public async Task<List<Resource>> QueryForResourcesAsync(string queryName, string query, List<string> targetSubscriptions)
+        public async Task<List<Resource>> QueryForResourcesAsync(string queryName, string query, List<string> targetSubscriptions, int pageSize, int currentPage)
         {
             Guard.NotNullOrWhitespace(query, nameof(query));
 
-            var queryResult = await QueryAsync(queryName, query, targetSubscriptions);
+            var queryResult = await QueryAsync(queryName, query, pageSize, currentPage, targetSubscriptions);
             var foundResources = ParseQueryResults(queryResult);
 
             return foundResources;
         }
 
-        private async Task<QueryResponse> QueryAsync(string queryName, string query, List<string> targetSubscriptions = null)
+        private async Task<QueryResponse> QueryAsync(string queryName, string query, int pageSize, int currentPage, List<string> targetSubscriptions = null)
         {
             Guard.NotNullOrWhitespace(query, nameof(query));
 
             var response = await InteractWithAzureResourceGraphAsync(queryName, query,  async graphClient =>
             {
+                var pageSkip = currentPage > 0 ? pageSize * (currentPage - 1) : 0;
                 var queryOptions = new QueryRequestOptions
                 {
-                    ResultFormat = ResultFormat.Table
+                    ResultFormat = ResultFormat.Table,
+                    Skip = pageSkip,
+                    Top = pageSize
                 };
+
                 var queryRequest = new QueryRequest(query, options: queryOptions, subscriptions: targetSubscriptions);
                 return await graphClient.ResourcesAsync(queryRequest);
             });
@@ -268,12 +273,13 @@ namespace Promitor.Agents.ResourceDiscovery.Graph
 
             var credentials = await AzureAuthenticationFactory.GetTokenCredentialsAsync(azureEnvironment.ManagementEndpoint, TenantId, _azureAuthenticationInfo, azureAuthorityHost);
             var resourceManagerBaseUri = new Uri(azureEnvironment.ResourceManagerEndpoint);
+            var appId = DetermineApplicationId(_azureAuthenticationInfo);
 
             var metricLabels = new Dictionary<string, string>
             {
                 {"tenant_id", TenantId},
                 {"cloud", azureEnvironment.GetDisplayName()},
-                {"app_id", _azureAuthenticationInfo.IdentityId},
+                {"app_id", appId},
                 {"auth_mode", _azureAuthenticationInfo.Mode.ToString()},
             };
             var resourceGraphClient = new ResourceGraphClient(resourceManagerBaseUri, credentials, new AzureResourceGraphThrottlingRequestHandler(_prometheusMetricsCollector, metricLabels, _logger));
@@ -284,6 +290,21 @@ namespace Promitor.Agents.ResourceDiscovery.Graph
             resourceGraphClient.UserAgent.TryParseAdd(promitorUserAgent);
 
             return resourceGraphClient;
+        }
+
+        private string DetermineApplicationId(AzureAuthenticationInfo azureAuthenticationInfo)
+        {
+            switch (azureAuthenticationInfo.Mode)
+            {
+                case AuthenticationMode.ServicePrincipal:
+                case AuthenticationMode.UserAssignedManagedIdentity:
+                    Guard.NotNullOrWhitespace(azureAuthenticationInfo.IdentityId, nameof(azureAuthenticationInfo.IdentityId));
+                    return azureAuthenticationInfo.IdentityId;
+                case AuthenticationMode.SystemAssignedManagedIdentity:
+                    return "system-assigned-identity";
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(azureAuthenticationInfo.Mode));
+            }
         }
     }
 }
