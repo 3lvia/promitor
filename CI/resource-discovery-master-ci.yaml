@@ -1,6 +1,9 @@
 trigger:
   - master
 
+pool:
+  vmImage: "ubuntu-latest"
+
 variables:
   containerregistry: 'ContainerRegistryElvia'
   imagetag: $(Build.BuildNumber)
