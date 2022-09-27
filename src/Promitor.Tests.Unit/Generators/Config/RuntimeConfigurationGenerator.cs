@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Azure.Management.ResourceManager.Fluent.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Promitor.Agents.Core.Configuration.Server;
@@ -10,6 +11,8 @@ using Promitor.Agents.Core.Configuration.Telemetry;
 using Promitor.Agents.Core.Configuration.Telemetry.Sinks;
 using Promitor.Agents.Scraper.Configuration;
 using Promitor.Core.Scraping.Configuration.Runtime;
+using Promitor.Integrations.AzureMonitor.Configuration;
+using Promitor.Integrations.Sinks.OpenTelemetry.Configuration;
 using Promitor.Integrations.Sinks.Prometheus.Configuration;
 using Promitor.Integrations.Sinks.Statsd.Configuration;
 
@@ -29,16 +32,20 @@ namespace Promitor.Tests.Unit.Generators.Config
             _runtimeConfiguration = runtimeConfiguration;
         }
 
-        public static RuntimeConfigurationGenerator WithServerConfiguration(int? httpPort = 888)
+        public static RuntimeConfigurationGenerator WithServerConfiguration(int httpPort = 888, int maxDegreeOfParallelism = 8)
         {
-            var serverConfiguration = httpPort == null
-                ? null
-                : new ServerConfiguration
-                {
-                    HttpPort = httpPort.Value
-                };
+            var serverConfiguration = new ServerConfiguration
+            {
+                HttpPort = httpPort,
+                MaxDegreeOfParallelism = maxDegreeOfParallelism
+            };
 
             return new RuntimeConfigurationGenerator(serverConfiguration);
+        }
+
+        public static RuntimeConfigurationGenerator WithoutServerConfiguration()
+        {
+            return new RuntimeConfigurationGenerator(new ScraperRuntimeConfiguration());
         }
 
         public static RuntimeConfigurationGenerator WithRuntimeConfiguration(ScraperRuntimeConfiguration runtimeConfiguration)
@@ -74,6 +81,19 @@ namespace Promitor.Tests.Unit.Generators.Config
             }
 
             _runtimeConfiguration.MetricSinks.PrometheusScrapingEndpoint = prometheusSinkConfiguration;
+
+            return this;
+        }
+
+        public RuntimeConfigurationGenerator WithOpenTelemetryCollectorMetricSink(string collectorUri = "https://opentelemetry-collector:8888")
+        {
+            if (string.IsNullOrWhiteSpace(collectorUri) == false)
+            {
+                _runtimeConfiguration.MetricSinks.OpenTelemetryCollector = new OpenTelemetryCollectorSinkConfiguration
+                {
+                    CollectorUri = collectorUri
+                };
+            }
 
             return this;
         }
@@ -206,6 +226,37 @@ namespace Promitor.Tests.Unit.Generators.Config
             return this;
         }
 
+        public RuntimeConfigurationGenerator WithAzureMonitorLogging(bool isEnabled = true, HttpLoggingDelegatingHandler.Level informationLevel = HttpLoggingDelegatingHandler.Level.Headers)
+        {
+            if (_runtimeConfiguration.AzureMonitor == null)
+            {
+                _runtimeConfiguration.AzureMonitor = new AzureMonitorConfiguration();
+            }
+
+            _runtimeConfiguration.AzureMonitor.Logging = new AzureMonitorLoggingConfiguration
+            {
+                IsEnabled = isEnabled,
+                InformationLevel = informationLevel
+            };
+
+            return this;
+        }
+
+        public RuntimeConfigurationGenerator WithAzureMonitorIntegration(int? startingFromInHours = 100)
+        {
+            _runtimeConfiguration.AzureMonitor ??= new AzureMonitorConfiguration();
+            _runtimeConfiguration.AzureMonitor.Integration ??= new AzureMonitorIntegrationConfiguration();
+
+            _runtimeConfiguration.AzureMonitor.Integration.History = new AzureMonitorHistoryConfiguration();
+
+            if (startingFromInHours != null)
+            {
+                _runtimeConfiguration.AzureMonitor.Integration.History.StartingFromInHours = startingFromInHours.Value;
+            }
+
+            return this;
+        }
+
         public async Task<IConfiguration> GenerateAsync()
         {
             var configurationBuilder = new StringBuilder();
@@ -214,6 +265,7 @@ namespace Promitor.Tests.Unit.Generators.Config
             {
                 configurationBuilder.AppendLine("server:");
                 configurationBuilder.AppendLine($"  httpPort: {_runtimeConfiguration?.Server.HttpPort}");
+                configurationBuilder.AppendLine($"  maxDegreeOfParallelism: {_runtimeConfiguration?.Server.MaxDegreeOfParallelism}");
             }
 
             if (_runtimeConfiguration?.ResourceDiscovery != null)
@@ -239,6 +291,11 @@ namespace Promitor.Tests.Unit.Generators.Config
                     configurationBuilder.AppendLine($"    baseUriPath: {_runtimeConfiguration?.MetricSinks.PrometheusScrapingEndpoint.BaseUriPath}");
                     configurationBuilder.AppendLine($"    enableMetricTimestamps: {_runtimeConfiguration?.MetricSinks.PrometheusScrapingEndpoint.EnableMetricTimestamps}");
                     configurationBuilder.AppendLine($"    metricUnavailableValue: {_runtimeConfiguration?.MetricSinks.PrometheusScrapingEndpoint.MetricUnavailableValue}");
+                }
+                if (_runtimeConfiguration?.MetricSinks.OpenTelemetryCollector != null)
+                {
+                    configurationBuilder.AppendLine("  openTelemetryCollector:");
+                    configurationBuilder.AppendLine($"    collectorUri: {_runtimeConfiguration?.MetricSinks.OpenTelemetryCollector.CollectorUri}");
                 }
             }
 
@@ -273,6 +330,25 @@ namespace Promitor.Tests.Unit.Generators.Config
                 if (_runtimeConfiguration?.Telemetry.DefaultVerbosity != null)
                 {
                     configurationBuilder.AppendLine($"  defaultVerbosity: {_runtimeConfiguration?.Telemetry.DefaultVerbosity}");
+                }
+            }
+
+            if (_runtimeConfiguration?.AzureMonitor != null)
+            {
+                configurationBuilder.AppendLine("azureMonitor:");
+
+                if (_runtimeConfiguration?.AzureMonitor.Integration?.History != null)
+                {
+                    configurationBuilder.AppendLine("  integration:");
+                    configurationBuilder.AppendLine("    history:");
+                    configurationBuilder.AppendLine($"      startingFromInHours: {_runtimeConfiguration?.AzureMonitor.Integration.History.StartingFromInHours}");
+                }
+
+                if (_runtimeConfiguration?.AzureMonitor.Logging != null)
+                {
+                    configurationBuilder.AppendLine("  logging:");
+                    configurationBuilder.AppendLine($"    isEnabled: {_runtimeConfiguration?.AzureMonitor.Logging.IsEnabled}");
+                    configurationBuilder.AppendLine($"    informationLevel: {_runtimeConfiguration?.AzureMonitor.Logging.InformationLevel}");
                 }
             }
 

@@ -1,5 +1,5 @@
 {
-	"masterIssue": false,
+	"masterIssue": true,
 	"branchPrefix": "renovate-",
 	"separateMajorMinor": false,
 	"labels": ["dependencies"],
@@ -7,10 +7,15 @@
 	"ignoreDeps": [],
 	"prHourlyLimit": 0,
 	"prConcurrentLimit": 0,
+	"rebaseLabel": "renovate-rebase",
 	"packageRules": [{
 			"datasources": ["docker"],
-			"packagePatterns": ["^mcr.microsoft.com/dotnet/"],
-			"groupName": ".NET Core Docker containers"
+			"matchPackagePrefixes": ["mcr.microsoft.com/dotnet"],
+			"groupName": ".NET Core Docker containers",
+			"labels": [
+				"Docker",
+				".NET"
+			]
 		},
 		{
 			"extends": "monorepo:dotnet",
@@ -21,8 +26,24 @@
 			]
 		},
 		{
+			"groupName": "AutoMapper",
+			"matchPackagePrefixes": [
+			  "AutoMapper"
+			]
+		},
+		{
 			"extends": "monorepo:aspnet extensions",
 			"groupName": ".NET Extensions",
+			"labels": [
+				"NuGet",
+				".NET"
+			]
+		},
+		{
+			"groupName": "Prometheus.Client",
+			"sourceUrlPrefixes": [
+			  "https://github.com/prom-client-net"
+			],
 			"labels": [
 				"NuGet",
 				".NET"

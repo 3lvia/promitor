@@ -1,17 +1,100 @@
 ﻿using System.ComponentModel;
 using System.Threading.Tasks;
+using Microsoft.Azure.Management.ResourceManager.Fluent.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Promitor.Agents.Scraper.Configuration;
 using Promitor.Tests.Unit.Generators.Config;
 using Xunit;
-using Defaults = Promitor.Agents.Scraper.Configuration.Defaults;
+using DefaultsCore = Promitor.Agents.Core.Configuration.Defaults;
 
 namespace Promitor.Tests.Unit.Configuration
 {
     [Category("Unit")]
     public class RuntimeConfigurationUnitTest : UnitTest
     {
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task RuntimeConfiguration_HasConfiguredAzureMonitorLoggingEnabledFlag_UsesConfigured(bool azureMonitorLogsEnabled)
+        {
+            // Arrange
+            var configuration = await RuntimeConfigurationGenerator.WithServerConfiguration()
+                .WithAzureMonitorLogging(isEnabled: azureMonitorLogsEnabled)
+                .GenerateAsync();
+
+            // Act
+            var runtimeConfiguration = configuration.Get<ScraperRuntimeConfiguration>();
+
+            // Assert
+            Assert.NotNull(runtimeConfiguration);
+            Assert.NotNull(runtimeConfiguration.AzureMonitor);
+            Assert.NotNull(runtimeConfiguration.AzureMonitor.Logging);
+            Assert.Equal(azureMonitorLogsEnabled, runtimeConfiguration.AzureMonitor.Logging.IsEnabled);
+        }
+
+        [Theory]
+        [InlineData(HttpLoggingDelegatingHandler.Level.None)]
+        [InlineData(HttpLoggingDelegatingHandler.Level.Basic)]
+        [InlineData(HttpLoggingDelegatingHandler.Level.Headers)]
+        [InlineData(HttpLoggingDelegatingHandler.Level.Body)]
+        [InlineData(HttpLoggingDelegatingHandler.Level.BodyAndHeaders)]
+        public async Task RuntimeConfiguration_HasConfiguredAzureMonitorLoggingInformationLevel_UsesConfigured(HttpLoggingDelegatingHandler.Level informationLevel)
+        {
+            // Arrange
+            var configuration = await RuntimeConfigurationGenerator.WithServerConfiguration()
+                .WithAzureMonitorLogging(informationLevel: informationLevel)
+                .GenerateAsync();
+
+            // Act
+            var runtimeConfiguration = configuration.Get<ScraperRuntimeConfiguration>();
+
+            // Assert
+            Assert.NotNull(runtimeConfiguration);
+            Assert.NotNull(runtimeConfiguration.AzureMonitor);
+            Assert.NotNull(runtimeConfiguration.AzureMonitor.Logging);
+            Assert.Equal(informationLevel, runtimeConfiguration.AzureMonitor.Logging.InformationLevel);
+        }
+
+        [Fact]
+        public async Task RuntimeConfiguration_HasNoStartingFromInHoursConfiguredForAzureMonitorIntegration_UsesDefault()
+        {
+            // Arrange
+            var configuration = await RuntimeConfigurationGenerator.WithServerConfiguration()
+                .WithAzureMonitorIntegration(startingFromInHours: null)
+                .GenerateAsync();
+
+            // Act
+            var runtimeConfiguration = configuration.Get<ScraperRuntimeConfiguration>();
+
+            // Assert
+            Assert.NotNull(runtimeConfiguration);
+            Assert.NotNull(runtimeConfiguration.AzureMonitor);
+            Assert.NotNull(runtimeConfiguration.AzureMonitor.Integration);
+            Assert.NotNull(runtimeConfiguration.AzureMonitor.Integration.History);
+            Assert.Equal(12, runtimeConfiguration.AzureMonitor.Integration.History.StartingFromInHours);
+        }
+
+        [Fact]
+        public async Task RuntimeConfiguration_HasStartingFromInHoursConfiguredForAzureMonitorIntegration_UsesConfigured()
+        {
+            // Arrange
+            var expectedStartingFromInHours = BogusGenerator.Random.Int(min: 1);
+            var configuration = await RuntimeConfigurationGenerator.WithServerConfiguration()
+                .WithAzureMonitorIntegration(startingFromInHours: expectedStartingFromInHours)
+                .GenerateAsync();
+
+            // Act
+            var runtimeConfiguration = configuration.Get<ScraperRuntimeConfiguration>();
+
+            // Assert
+            Assert.NotNull(runtimeConfiguration);
+            Assert.NotNull(runtimeConfiguration.AzureMonitor);
+            Assert.NotNull(runtimeConfiguration.AzureMonitor.Integration);
+            Assert.NotNull(runtimeConfiguration.AzureMonitor.Integration.History);
+            Assert.Equal(expectedStartingFromInHours, runtimeConfiguration.AzureMonitor.Integration.History.StartingFromInHours);
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -27,6 +110,7 @@ namespace Promitor.Tests.Unit.Configuration
 
             // Assert
             Assert.NotNull(runtimeConfiguration);
+            Assert.NotNull(runtimeConfiguration.Telemetry);
             Assert.NotNull(runtimeConfiguration.Telemetry.ContainerLogs);
             Assert.Equal(containerLogsEnabled, runtimeConfiguration.Telemetry.ContainerLogs.IsEnabled);
         }
@@ -137,6 +221,23 @@ namespace Promitor.Tests.Unit.Configuration
             Assert.NotNull(runtimeConfiguration);
             Assert.NotNull(runtimeConfiguration.Server);
             Assert.Equal(bogusHttpPort, runtimeConfiguration.Server.HttpPort);
+        }
+
+        [Fact]
+        public async Task RuntimeConfiguration_HasConfiguredMaxDegreeOfParallelism_UsesConfigured()
+        {
+            // Arrange
+            var bogusMaxDegreeOfParallelism = BogusGenerator.Random.Int();
+            var configuration = await RuntimeConfigurationGenerator.WithServerConfiguration(maxDegreeOfParallelism: bogusMaxDegreeOfParallelism)
+                .GenerateAsync();
+
+            // Act
+            var runtimeConfiguration = configuration.Get<ScraperRuntimeConfiguration>();
+
+            // Assert
+            Assert.NotNull(runtimeConfiguration);
+            Assert.NotNull(runtimeConfiguration.Server);
+            Assert.Equal(bogusMaxDegreeOfParallelism, runtimeConfiguration.Server.MaxDegreeOfParallelism);
         }
 
         [Theory]
@@ -255,6 +356,42 @@ namespace Promitor.Tests.Unit.Configuration
         }
 
         [Fact]
+        public async Task RuntimeConfiguration_HasConfiguredCollectorUriInOpenTelemetryCollectorEndpoint_UsesConfigured()
+        {
+            // Arrange
+            var collectorUri = "https://foo.bar";
+            var configuration = await RuntimeConfigurationGenerator.WithServerConfiguration()
+                .WithOpenTelemetryCollectorMetricSink(collectorUri: collectorUri)
+                .GenerateAsync();
+
+            // Act
+            var runtimeConfiguration = configuration.Get<ScraperRuntimeConfiguration>();
+
+            // Assert
+            Assert.NotNull(runtimeConfiguration);
+            Assert.NotNull(runtimeConfiguration.MetricSinks);
+            Assert.NotNull(runtimeConfiguration.MetricSinks.OpenTelemetryCollector);
+            Assert.Equal(collectorUri, runtimeConfiguration.MetricSinks.OpenTelemetryCollector.CollectorUri);
+        }
+
+        [Fact]
+        public async Task RuntimeConfiguration_HasConfiguredNoCollectorUriInOpenTelemetryCollectorEndpoint_OpenTelemetryIsIgnored()
+        {
+            // Arrange
+            var configuration = await RuntimeConfigurationGenerator.WithServerConfiguration()
+                .WithOpenTelemetryCollectorMetricSink(collectorUri: null)
+                .GenerateAsync();
+
+            // Act
+            var runtimeConfiguration = configuration.Get<ScraperRuntimeConfiguration>();
+
+            // Assert
+            Assert.NotNull(runtimeConfiguration);
+            Assert.NotNull(runtimeConfiguration.MetricSinks);
+            Assert.Null(runtimeConfiguration.MetricSinks.OpenTelemetryCollector);
+        }
+
+        [Fact]
         public async Task RuntimeConfiguration_HasNoDefaultApplicationInsights_UsesDefault()
         {
             // Arrange
@@ -270,8 +407,8 @@ namespace Promitor.Tests.Unit.Configuration
             Assert.NotNull(runtimeConfiguration.Telemetry);
             Assert.NotNull(runtimeConfiguration.Telemetry.ApplicationInsights);
             Assert.Null(runtimeConfiguration.Telemetry.ApplicationInsights.InstrumentationKey);
-            Assert.Equal(Defaults.Telemetry.ApplicationInsights.Verbosity, runtimeConfiguration.Telemetry.ApplicationInsights.Verbosity);
-            Assert.Equal(Defaults.Telemetry.ApplicationInsights.IsEnabled, runtimeConfiguration.Telemetry.ApplicationInsights.IsEnabled);
+            Assert.Equal(DefaultsCore.Telemetry.ApplicationInsights.Verbosity, runtimeConfiguration.Telemetry.ApplicationInsights.Verbosity);
+            Assert.Equal(DefaultsCore.Telemetry.ApplicationInsights.IsEnabled, runtimeConfiguration.Telemetry.ApplicationInsights.IsEnabled);
         }
 
         [Fact]
@@ -289,8 +426,8 @@ namespace Promitor.Tests.Unit.Configuration
             Assert.NotNull(runtimeConfiguration);
             Assert.NotNull(runtimeConfiguration.Telemetry);
             Assert.NotNull(runtimeConfiguration.Telemetry.ContainerLogs);
-            Assert.Equal(Defaults.Telemetry.ContainerLogs.Verbosity, runtimeConfiguration.Telemetry.ContainerLogs.Verbosity);
-            Assert.Equal(Defaults.Telemetry.ContainerLogs.IsEnabled, runtimeConfiguration.Telemetry.ContainerLogs.IsEnabled);
+            Assert.Equal(DefaultsCore.Telemetry.ContainerLogs.Verbosity, runtimeConfiguration.Telemetry.ContainerLogs.Verbosity);
+            Assert.Equal(DefaultsCore.Telemetry.ContainerLogs.IsEnabled, runtimeConfiguration.Telemetry.ContainerLogs.IsEnabled);
         }
 
         [Fact]
@@ -307,14 +444,14 @@ namespace Promitor.Tests.Unit.Configuration
             // Assert
             Assert.NotNull(runtimeConfiguration);
             Assert.NotNull(runtimeConfiguration.Telemetry);
-            Assert.Equal(Defaults.Telemetry.DefaultVerbosity, runtimeConfiguration.Telemetry.DefaultVerbosity);
+            Assert.Equal(DefaultsCore.Telemetry.DefaultVerbosity, runtimeConfiguration.Telemetry.DefaultVerbosity);
         }
 
         [Fact]
         public async Task RuntimeConfiguration_HasNoHttpPort_UsesDefault()
         {
             // Arrange
-            var configuration = await RuntimeConfigurationGenerator.WithServerConfiguration(null)
+            var configuration = await RuntimeConfigurationGenerator.WithoutServerConfiguration()
                 .GenerateAsync();
 
             // Act
@@ -323,7 +460,23 @@ namespace Promitor.Tests.Unit.Configuration
             // Assert
             Assert.NotNull(runtimeConfiguration);
             Assert.NotNull(runtimeConfiguration.Server);
-            Assert.Equal(Defaults.Server.HttpPort, runtimeConfiguration.Server.HttpPort);
+            Assert.Equal(DefaultsCore.Server.HttpPort, runtimeConfiguration.Server.HttpPort);
+        }
+
+        [Fact]
+        public async Task RuntimeConfiguration_HasNoMaxDegreeOfParallelism_UsesDefault()
+        {
+            // Arrange
+            var configuration = await RuntimeConfigurationGenerator.WithoutServerConfiguration()
+                .GenerateAsync();
+
+            // Act
+            var runtimeConfiguration = configuration.Get<ScraperRuntimeConfiguration>();
+
+            // Assert
+            Assert.NotNull(runtimeConfiguration);
+            Assert.NotNull(runtimeConfiguration.Server);
+            Assert.Equal(DefaultsCore.Server.MaxDegreeOfParallelism, runtimeConfiguration.Server.MaxDegreeOfParallelism);
         }
 
         [Fact]
@@ -382,6 +535,7 @@ namespace Promitor.Tests.Unit.Configuration
             Assert.NotNull(runtimeConfiguration.MetricsConfiguration);
             Assert.NotNull(runtimeConfiguration.ResourceDiscovery);
             Assert.Equal(bogusRuntimeConfiguration.Server.HttpPort, runtimeConfiguration.Server.HttpPort);
+            Assert.Equal(bogusRuntimeConfiguration.Server.MaxDegreeOfParallelism, runtimeConfiguration.Server.MaxDegreeOfParallelism);
             Assert.Equal(bogusRuntimeConfiguration.ResourceDiscovery.Host, runtimeConfiguration.ResourceDiscovery.Host);
             Assert.Equal(bogusRuntimeConfiguration.ResourceDiscovery.Port, runtimeConfiguration.ResourceDiscovery.Port);
             Assert.Equal(bogusRuntimeConfiguration.Telemetry.DefaultVerbosity, runtimeConfiguration.Telemetry.DefaultVerbosity);

@@ -17,7 +17,7 @@ using Promitor.Agents.ResourceDiscovery.Graph.Repositories.Interfaces;
 using Promitor.Agents.ResourceDiscovery.Scheduling;
 using Promitor.Agents.ResourceDiscovery.Usability;
 using Promitor.Agents.ResourceDiscovery.Validation.Steps;
-using Promitor.Core.Metrics.Prometheus.Collectors.Interfaces;
+using Promitor.Core.Metrics.Interfaces;
 using Promitor.Integrations.Azure.Authentication.Configuration;
 // ReSharper disable RedundantTypeArgumentsOfMethod
 
@@ -54,7 +54,7 @@ namespace Promitor.Agents.ResourceDiscovery.Extensions
                     {
                         return new AzureSubscriptionDiscoveryBackgroundJob(jobName,
                             jobServices.GetRequiredService<IAzureResourceRepository>(),
-                            jobServices.GetRequiredService<IPrometheusMetricsCollector>(),
+                            jobServices.GetRequiredService<ISystemMetricsPublisher>(),
                             jobServices.GetRequiredService<ILogger<AzureSubscriptionDiscoveryBackgroundJob>>());
                     },
                     schedulerOptions =>
@@ -63,8 +63,16 @@ namespace Promitor.Agents.ResourceDiscovery.Extensions
                         schedulerOptions.RunImmediately = true;
                     },
                     jobName: jobName);
-
-                builder.UnobservedTaskExceptionHandler = (_, exceptionEventArgs) => BackgroundJobMonitor.HandleException(jobName, exceptionEventArgs, services);
+                
+                builder.AddUnobservedTaskExceptionHandler(s =>
+                {
+                    return
+                        (_, exceptionEventArgs) =>
+                        {
+                            var exceptionLogger = s.GetService<ILogger<BackgroundJobMonitor>>();
+                            BackgroundJobMonitor.HandleException(jobName, exceptionEventArgs, exceptionLogger);
+                        };
+                });
             });
             services.AddScheduler(builder =>
             {
@@ -74,7 +82,7 @@ namespace Promitor.Agents.ResourceDiscovery.Extensions
                     {
                         return new AzureResourceGroupsDiscoveryBackgroundJob(jobName,
                             jobServices.GetRequiredService<IAzureResourceRepository>(),
-                            jobServices.GetRequiredService<IPrometheusMetricsCollector>(),
+                            jobServices.GetRequiredService<ISystemMetricsPublisher>(),
                             jobServices.GetRequiredService<ILogger<AzureResourceGroupsDiscoveryBackgroundJob>>());
                     },
                     schedulerOptions =>
@@ -83,8 +91,16 @@ namespace Promitor.Agents.ResourceDiscovery.Extensions
                         schedulerOptions.RunImmediately = true;
                     },
                     jobName: jobName);
-
-                builder.UnobservedTaskExceptionHandler = (_, exceptionEventArgs) => BackgroundJobMonitor.HandleException(jobName, exceptionEventArgs, services);
+                
+                builder.AddUnobservedTaskExceptionHandler(s =>
+                {
+                    return
+                        (_, exceptionEventArgs) =>
+                        {
+                            var exceptionLogger = s.GetService<ILogger<BackgroundJobMonitor>>();
+                            BackgroundJobMonitor.HandleException(jobName, exceptionEventArgs, exceptionLogger);
+                        };
+                });
             });
 
             return services;

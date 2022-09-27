@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Promitor.Agents.ResourceDiscovery.Graph.Model;
 using Promitor.Agents.ResourceDiscovery.Graph.Repositories.Interfaces;
 using Promitor.Core.Contracts;
-using Promitor.Core.Metrics.Prometheus.Collectors.Interfaces;
+using Promitor.Core.Metrics.Interfaces;
 
 namespace Promitor.Agents.ResourceDiscovery.Scheduling
 {
@@ -16,8 +16,8 @@ namespace Promitor.Agents.ResourceDiscovery.Scheduling
         public const string MetricName = "promitor_azure_landscape_resource_group_info";
         public const string MetricDescription = "Provides information concerning the Azure resource groups in the landscape that Promitor has access to.";
         
-        public AzureResourceGroupsDiscoveryBackgroundJob(string jobName, IAzureResourceRepository azureResourceRepository, IPrometheusMetricsCollector prometheusMetricsCollector, ILogger<AzureResourceGroupsDiscoveryBackgroundJob> logger)
-            : base(azureResourceRepository, prometheusMetricsCollector, logger)
+        public AzureResourceGroupsDiscoveryBackgroundJob(string jobName, IAzureResourceRepository azureResourceRepository, ISystemMetricsPublisher systemMetricsPublisher, ILogger<AzureResourceGroupsDiscoveryBackgroundJob> logger)
+            : base(azureResourceRepository, systemMetricsPublisher, logger)
         {
             Guard.NotNullOrWhitespace(jobName, nameof(jobName));
 
@@ -31,23 +31,26 @@ namespace Promitor.Agents.ResourceDiscovery.Scheduling
             Logger.LogTrace("Discovering Azure Resource Groups...");
 
             PagedPayload<AzureResourceGroupInformation> discoveredResourceGroups;
+            var currentPage = 1;
             do
             {
                 // Discover Azure subscriptions
-                discoveredResourceGroups = await AzureResourceRepository.DiscoverAzureResourceGroupsAsync(pageSize: 1000, currentPage: 0);
+                discoveredResourceGroups = await AzureResourceRepository.DiscoverAzureResourceGroupsAsync(pageSize: 1000, currentPage: currentPage);
 
                 // Report discovered information as metric
                 foreach (var resourceGroupInformation in discoveredResourceGroups.Result)
                 {
-                    ReportDiscoveredAzureInfo(resourceGroupInformation);
+                    await ReportDiscoveredAzureInfoAsync(resourceGroupInformation);
                 }
+                
+                currentPage++;
             }
             while (discoveredResourceGroups.HasMore);
 
             Logger.LogTrace("Azure Resource Groups discovered.");
         }
 
-        private void ReportDiscoveredAzureInfo(AzureResourceGroupInformation resourceGroupInformation)
+        private async Task ReportDiscoveredAzureInfoAsync(AzureResourceGroupInformation resourceGroupInformation)
         {
             var labels = new Dictionary<string, string>
             {
@@ -60,7 +63,7 @@ namespace Promitor.Agents.ResourceDiscovery.Scheduling
             };
 
             // Report metric in Prometheus endpoint
-            WritePrometheusMetric(MetricName, MetricDescription, value: 1, labels);
+            await WritePrometheusMetricAsync(MetricName, MetricDescription, value: 1, labels);
         }
     }
 }
