@@ -17,7 +17,7 @@ namespace Promitor.Tests.Unit.Serialization.v1.Core
         private readonly Mock<IDeserializer<AzureMetadataV1>> _metadataDeserializer;
         private readonly Mock<IDeserializer<MetricDefaultsV1>> _defaultsDeserializer;
         private readonly Mock<IDeserializer<MetricDefinitionV1>> _metricsDeserializer;
-        private readonly Mock<IErrorReporter> _errorReporter = new Mock<IErrorReporter>();
+        private readonly Mock<IErrorReporter> _errorReporter = new();
         private readonly V1Deserializer _deserializer;
 
         public V1DeserializerTests()
@@ -89,7 +89,7 @@ azureMetadata:
             var yamlNode = YamlUtils.CreateYamlNode(config);
             var azureMetadata = new AzureMetadataV1();
             _metadataDeserializer.Setup(
-                d => d.DeserializeObject(It.IsAny<YamlMappingNode>(), It.IsAny<IErrorReporter>())).Returns(azureMetadata);
+                d => d.Deserialize(It.IsAny<YamlMappingNode>(), It.IsAny<IErrorReporter>())).Returns(azureMetadata);
 
             // Act
             var declaration = _deserializer.Deserialize(yamlNode, _errorReporter.Object);
@@ -104,7 +104,7 @@ azureMetadata:
             // Arrange
             var yamlNode = YamlUtils.CreateYamlNode("version: v1");
             _metadataDeserializer.Setup(
-                d => d.DeserializeObject(It.IsAny<YamlMappingNode>(), It.IsAny<IErrorReporter>())).Returns(new AzureMetadataV1());
+                d => d.Deserialize(It.IsAny<YamlMappingNode>(), It.IsAny<IErrorReporter>())).Returns(new AzureMetadataV1());
 
             // Act
             var declaration = _deserializer.Deserialize(yamlNode, _errorReporter.Object);
@@ -125,7 +125,7 @@ metricDefaults:
             var yamlNode = YamlUtils.CreateYamlNode(config);
             var metricDefaults = new MetricDefaultsV1();
             _defaultsDeserializer.Setup(
-                d => d.DeserializeObject(It.IsAny<YamlMappingNode>(), It.IsAny<IErrorReporter>())).Returns(metricDefaults);
+                d => d.Deserialize(It.IsAny<YamlMappingNode>(), It.IsAny<IErrorReporter>())).Returns(metricDefaults);
 
             // Act
             var declaration = _deserializer.Deserialize(yamlNode, _errorReporter.Object);
@@ -142,7 +142,7 @@ metricDefaults:
                 @"version: v1";
             var yamlNode = YamlUtils.CreateYamlNode(config);
             _defaultsDeserializer.Setup(
-                d => d.DeserializeObject(It.IsAny<YamlMappingNode>(), It.IsAny<IErrorReporter>())).Returns(new MetricDefaultsV1());
+                d => d.Deserialize(It.IsAny<YamlMappingNode>(), It.IsAny<IErrorReporter>())).Returns(new MetricDefaultsV1());
 
             // Act
             var declaration = _deserializer.Deserialize(yamlNode, _errorReporter.Object);
@@ -160,7 +160,7 @@ metricDefaults:
 metrics:
 - name: promitor_metrics_total";
             var yamlNode = YamlUtils.CreateYamlNode(config);
-            var metrics = new List<MetricDefinitionV1> { new MetricDefinitionV1 { Name = "test_metric" } };
+            var metrics = new List<MetricDefinitionV1> { new() { Name = "test_metric" } };
             _metricsDeserializer.Setup(
                 d => d.Deserialize(It.IsAny<YamlSequenceNode>(), It.IsAny<IErrorReporter>())).Returns(metrics);
 

@@ -1,4 +1,5 @@
-﻿using System.Security.Authentication;
+﻿using System.IO;
+using System.Security.Authentication;
 using System.Threading.Tasks;
 using Azure.Core;
 using Azure.Identity;
@@ -20,16 +21,27 @@ namespace Promitor.Integrations.Azure.Authentication
         /// <param name="configuration">Application configuration</param>
         public static AzureAuthenticationInfo GetConfiguredAzureAuthentication(IConfiguration configuration)
         {
-            var authenticationConfiguration = configuration.GetSection("authentication").Get<AuthenticationConfiguration>();
-
             // To be still compatible with existing infrastructure using previous version of Promitor, we need to check if the authentication section exists.
             // If not, we should use a default value
-            if (authenticationConfiguration == null)
-            {
-                authenticationConfiguration = new AuthenticationConfiguration();
-            }
+            var authenticationConfiguration = configuration.GetSection("authentication").Get<AuthenticationConfiguration>() ?? new AuthenticationConfiguration();
 
-            var applicationKey = configuration.GetValue<string>(EnvironmentVariables.Authentication.ApplicationKey);
+            string applicationKey;
+
+            if (!string.IsNullOrWhiteSpace(authenticationConfiguration.SecretFilePath) && !string.IsNullOrWhiteSpace(authenticationConfiguration.SecretFileName))
+            {
+                var filePath = Path.Combine(authenticationConfiguration.SecretFilePath, authenticationConfiguration.SecretFileName);
+
+                if (!File.Exists(filePath))
+                {
+                    throw new AuthenticationException("Invalid secret file path was configured for service principle authentication because it does not exist");
+                }
+                
+                applicationKey = File.ReadAllText(filePath);
+            }
+            else
+            {
+                applicationKey = configuration.GetValue<string>(EnvironmentVariables.Authentication.ApplicationKey);
+            }
 
             string identityId = authenticationConfiguration.IdentityId;
             if (authenticationConfiguration.Mode == AuthenticationMode.ServicePrincipal)
@@ -50,13 +62,6 @@ namespace Promitor.Integrations.Azure.Authentication
                     throw new AuthenticationException("No identity secret was configured for service principle authentication");
                 }
             }
-            else if (authenticationConfiguration.Mode == AuthenticationMode.UserAssignedManagedIdentity)
-            {
-                if (string.IsNullOrWhiteSpace(identityId))
-                {
-                    throw new AuthenticationException("No identity was configured for user-assigned managed identity");
-                }
-            }
             
             return new AzureAuthenticationInfo
             {
@@ -66,10 +71,7 @@ namespace Promitor.Integrations.Azure.Authentication
             };
         }
 
-        /// <summary>
-        ///     Gets a valid token using a Service Principal or a Managed Identity
-        /// </summary>
-        public static async Task<TokenCredentials> GetTokenCredentialsAsync(string resource, string tenantId, AzureAuthenticationInfo authenticationInfo, System.Uri azureAuthorityHost)
+        public static TokenCredential GetTokenCredential(string resource, string tenantId, AzureAuthenticationInfo authenticationInfo, System.Uri azureAuthorityHost)
         {
             Guard.NotNullOrWhitespace(resource, nameof(resource));
             Guard.NotNullOrWhitespace(tenantId, nameof(tenantId));
@@ -85,7 +87,8 @@ namespace Promitor.Integrations.Azure.Authentication
                     tokenCredential = new ClientSecretCredential(tenantId, authenticationInfo.IdentityId, authenticationInfo.Secret, tokenCredentialOptions);
                     break;
                 case AuthenticationMode.UserAssignedManagedIdentity:
-                    tokenCredential = new ManagedIdentityCredential(authenticationInfo.IdentityId, tokenCredentialOptions);
+                    var clientId = authenticationInfo.GetIdentityIdOrDefault();
+                    tokenCredential = new ManagedIdentityCredential(clientId, tokenCredentialOptions);
                     break;
                 case AuthenticationMode.SystemAssignedManagedIdentity:
                     tokenCredential = new ManagedIdentityCredential(options:tokenCredentialOptions);
@@ -94,6 +97,16 @@ namespace Promitor.Integrations.Azure.Authentication
                     tokenCredential = new DefaultAzureCredential();
                     break;
             }
+
+            return tokenCredential;
+        }
+
+        /// <summary>
+        ///     Gets a valid token using a Service Principal or a Managed Identity
+        /// </summary>
+        public static async Task<TokenCredentials> GetTokenCredentialsAsync(string resource, string tenantId, AzureAuthenticationInfo authenticationInfo, System.Uri azureAuthorityHost)
+        {
+            var tokenCredential = GetTokenCredential(resource, tenantId, authenticationInfo, azureAuthorityHost);
 
             // When you reaching an endpoint, using an impersonate identity, the only endpoint available is always '/.default'
             // MSAL add the './default' string to your resource request behind the scene.
@@ -155,12 +168,8 @@ namespace Promitor.Integrations.Azure.Authentication
 
         private static AzureCredentials GetUserAssignedManagedIdentityCredentials(AzureEnvironment azureCloud, string tenantId, AzureAuthenticationInfo azureAuthenticationInfo, AzureCredentialsFactory azureCredentialsFactory)
         {
-            if (string.IsNullOrWhiteSpace(azureAuthenticationInfo.IdentityId))
-            {
-                throw new AuthenticationException("No identity was configured for user-assigned managed identity");
-            }
-
-            return azureCredentialsFactory.FromUserAssigedManagedServiceIdentity(azureAuthenticationInfo.IdentityId, MSIResourceType.VirtualMachine, azureCloud, tenantId);
+            var clientId = azureAuthenticationInfo.GetIdentityIdOrDefault();
+            return azureCredentialsFactory.FromUserAssigedManagedServiceIdentity(clientId, MSIResourceType.VirtualMachine, azureCloud, tenantId);
         }
     }
 }

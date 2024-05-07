@@ -4,17 +4,21 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 using JustEat.StatsD;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Promitor.Core;
 using Promitor.Core.Metrics.Sinks;
 using Promitor.Integrations.Sinks.Statsd;
+using Promitor.Integrations.Sinks.Statsd.Configuration;
 using Promitor.Tests.Unit.Generators;
+using Promitor.Tests.Unit.Metrics.Sinks;
+using Promitor.Tests.Unit.Stubs;
 using Xunit;
 
 namespace Promitor.Tests.Unit.Metrics
 {
     [Category("Unit")]
-    public class MetricSinkWriterTests : UnitTest
+    public class MetricSinkWriterTests : MetricSinkTest
     {
         [Theory]
         [InlineData("")]
@@ -117,6 +121,38 @@ namespace Promitor.Tests.Unit.Metrics
         }
 
         [Fact]
+        public void EnabledMetricSinks_NoSinks_ReturnsNothing()
+        {
+            // Arrange
+            var metricSinkWriter = new MetricSinkWriter(new List<IMetricSink>(), NullLogger<MetricSinkWriter>.Instance);
+
+            // Act & Assert
+            Assert.Empty(metricSinkWriter.EnabledMetricSinks);
+        }
+
+        [Fact]
+        public void EnabledMetricSinks_MultipleSinks_ReturnsSinkTypes()
+        {
+            // Arrange
+            var firstSinkType = MetricSinkType.OpenTelemetryCollector;
+            var firstSink = new Mock<IMetricSink>();
+            firstSink.SetupGet(x => x.Type).Returns(firstSinkType);
+            var secondSinkType = MetricSinkType.PrometheusScrapingEndpoint;
+            var secondSink = new Mock<IMetricSink>();
+            secondSink.SetupGet(x => x.Type).Returns(secondSinkType);
+            var metricSinkWriter = new MetricSinkWriter(new List<IMetricSink> { firstSink.Object, secondSink.Object }, NullLogger<MetricSinkWriter>.Instance);
+
+            // Act
+            var enabledMetricSinks=metricSinkWriter.EnabledMetricSinks;
+
+            // Assert
+            Assert.NotEmpty(enabledMetricSinks);
+            Assert.Equal(2, enabledMetricSinks.Count);
+            Assert.Contains(firstSinkType, enabledMetricSinks);
+            Assert.Contains(secondSinkType, enabledMetricSinks);
+        }
+
+        [Fact]
         public async Task ReportMetricAsync_WriteToStatsDSink_Succeeds()
         {
             // Arrange
@@ -124,8 +160,10 @@ namespace Promitor.Tests.Unit.Metrics
             var metricDescription = BogusGenerator.Lorem.Sentence();
             var metricValue = BogusGenerator.Random.Double();
             var scrapeResult = ScrapeResultGenerator.Generate(metricValue);
+            var metricsDeclarationProvider = CreateMetricsDeclarationProvider(metricName);
             var statsDPublisherMock = new Mock<IStatsDPublisher>();
-            var statsdMetricSink = new StatsdMetricSink(statsDPublisherMock.Object, NullLogger<StatsdMetricSink>.Instance);
+            var statsDSinkConfiguration = CreateStatsDConfiguration();
+            var statsdMetricSink = new StatsdMetricSink(statsDPublisherMock.Object, metricsDeclarationProvider, statsDSinkConfiguration, NullLogger<StatsdMetricSink>.Instance);
             var metricSinkWriter = new MetricSinkWriter(new List<IMetricSink> { statsdMetricSink }, NullLogger<MetricSinkWriter>.Instance);
             
             // Act
@@ -133,6 +171,13 @@ namespace Promitor.Tests.Unit.Metrics
 
             // Assert
             statsDPublisherMock.Verify(mock => mock.Gauge(metricValue, metricName), Times.Once());
+        }
+
+        private IOptionsMonitor<StatsdSinkConfiguration> CreateStatsDConfiguration()
+        {
+            var statsDConfiguration = new StatsdSinkConfiguration();
+
+            return new OptionsMonitorStub<StatsdSinkConfiguration>(statsDConfiguration);
         }
     }
 }

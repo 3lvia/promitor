@@ -1,7 +1,7 @@
 version: v1
 azureMetadata:
-  tenantId: e0372f7f-a362-47fb-9631-74a5c4ba8bbf
-  subscriptionId: 63c590b6-4947-4898-92a3-cae91a31b5e4
+  tenantId: 56c6cf98-bd87-4684-ad83-f3b41dfdcb21
+  subscriptionId: 3566a5fa-878c-40fd-ac37-ef0ba0eee29d
   resourceGroupName: promitor-testing-infrastructure-europe
 metricDefaults:
   aggregation:
@@ -173,7 +173,7 @@ metrics:
     resources:
       - accountName: promitor-testing-resource-eu-automation-1
   - name: promitor_demo_frontdoor_backend_health_per_backend_pool
-    description: "Health percentage for a backed in Azure Front Door"
+    description: "Health percentage for a backend in Azure Front Door"
     resourceType: FrontDoor
     labels:
       app: promitor
@@ -243,7 +243,7 @@ metrics:
         type: Total
     resourceDiscoveryGroups:
       - name: data-factory-landscape
-  - name: promitor_demo_application_insights_availability
+  - name: application_insights_availability
     description: "Availability (%) of promitor.io measured in Azure Application Insights"
     resourceType: ApplicationInsights
     azureMetricConfiguration:
@@ -252,11 +252,44 @@ metrics:
         type: Average
     resources:
       # Application Insights with data in the service itself (classic, deprecated)
-    - name: promitor-automation-data-generation-we-telemetry-classic
-      resourceGroupName: promitor-automation-data-generation
+    - name: promitor-testing-resource-eu-telemetry-classic
+      resourceGroupName: promitor-testing-infrastructure-europe
       # Application Insights with data in Log Analytics
-    - name: promitor-automation-data-generation-we-telemetry
-      resourceGroupName: promitor-automation-data-generation
+    - name: promitor-testing-resource-eu-telemetry
+      resourceGroupName: promitor-testing-infrastructure-europe
+  - name: application_insights_availability_per_name
+    description: "Availability (%) of promitor.io measured in Azure Application Insights per name"
+    resourceType: ApplicationInsights
+    azureMetricConfiguration:
+      metricName: availabilityResults/availabilityPercentage
+      aggregation:
+        type: Average
+      dimension:
+        name: availabilityResult/name
+    resources:
+      # Application Insights with data in the service itself (classic, deprecated)
+      - name: promitor-testing-resource-eu-telemetry-classic
+        resourceGroupName: promitor-testing-infrastructure-europe
+        # Application Insights with data in Log Analytics
+      - name: promitor-testing-resource-eu-telemetry
+        resourceGroupName: promitor-testing-infrastructure-europe
+  - name: application_insights_availability_per_name_and_location
+    description: "Availability (%) of promitor.io measured in Azure Application Insights per name and location"
+    resourceType: ApplicationInsights
+    azureMetricConfiguration:
+      metricName: availabilityResults/availabilityPercentage
+      aggregation:
+        type: Average
+      dimensions:
+        - name: availabilityResult/name
+        - name: availabilityResult/location
+    resources:
+      # Application Insights with data in the service itself (classic, deprecated)
+    - name: promitor-testing-resource-eu-telemetry-classic
+      resourceGroupName: promitor-testing-infrastructure-europe
+      # Application Insights with data in Log Analytics
+    - name: promitor-testing-resource-eu-telemetry
+      resourceGroupName: promitor-testing-infrastructure-europe
   - name: promitor_demo_cdn_requests_discovered
     description: "Amount of requests sent to Azure CDN"
     resourceType: Cdn
@@ -302,6 +335,71 @@ metrics:
         type: Average
     resourceDiscoveryGroups:
       - name: mysql-servers
+  - name: promitor_demo_log_analytics
+    description: "Usage of Azure Log Analytics"
+    resourceType: LogAnalytics
+    logAnalyticsConfiguration:
+      query: Usage | summarize result = count() | project result
+      aggregation:
+        interval: 7:00:00:00
+    resources:
+      - workspaceId: 7f07e0fe-36e7-44c8-b79c-7c7f65cb81a2
+        workspaceName: promitor-testing-resource-eu-logs
+  - name: azure_container_instance_cpu_usage_discovered
+    description: "Average cpu usage of our container instance"
+    resourceType: ContainerInstance
+    azureMetricConfiguration:
+      metricName: CpuUsage
+      aggregation:
+        type: Average
+    resourceDiscoveryGroups:
+    - name: container-instances
+  - name: promitor_demo_nat_gateway_DatapathAvailability
+    description: "DatapathAvailability usage of nat gateway"
+    resourceType: NatGateway
+    azureMetricConfiguration:
+      metricName: DatapathAvailability
+      aggregation:
+        type: Average
+    resourceDiscoveryGroups:
+      - name: nat-gateways
+  - name: promitor_demo_data_explorer_cluster_CPU
+    description: "CPU usage of Azure Data Explorer cluster"
+    resourceType: DataExplorerCluster
+    azureMetricConfiguration:
+      metricName: CPU
+      aggregation:
+        type: Average
+    resourceDiscoveryGroups:
+      - name: data-explorer-clusters
+  - name: promitor_demo_public_ip_address_under_ddos_attack
+    description: "Public IP Address under DDoS attack or not"
+    resourceType: PublicIpAddress
+    azureMetricConfiguration:
+      metricName: IfUnderDDoSAttack
+      aggregation:
+        type: Maximum
+    resourceDiscoveryGroups:
+      - name: public-ip-addresses
+  - name: azure_traffic_manager_endpoint_qps
+    description: Number of times a Traffic Manager endpoint was returned in the given time frame
+    resourceType: TrafficManager
+    azureMetricConfiguration:
+      metricName: QpsByEndpoint
+      aggregation:
+        type: Total
+    resourceDiscoveryGroups:
+      - name: traffic-managers
+  - name: azure_powerbi_dedicated_cpu_usage
+    description: percentage of cpu used by powerbi dedicated
+    resourceType: PowerBiDedicated
+    azureMetricConfiguration:
+        metricName: cpu_metric
+        aggregation:
+            type: Count
+    resourceDiscoveryGroups:
+        - name: powerbi-dedicated
+
   # This uses our large-scale data set containing 1000+ Azure Logic App instances
   # Uncomment if you want to test with this scale
   # - name: azure_logic_apps_failed_run_discovery

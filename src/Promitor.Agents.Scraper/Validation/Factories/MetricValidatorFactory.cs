@@ -31,6 +31,8 @@ namespace Promitor.Agents.Scraper.Validation.Factories
                     return new ContainerRegistryMetricValidator();
                 case ResourceType.CosmosDb:
                     return new CosmosDbMetricValidator();
+                case ResourceType.DataExplorerCluster:
+                    return new DataExplorerClusterMetricValidator();
                 case ResourceType.DataFactory:
                     return new DataFactoryMetricValidator();
                 case ResourceType.DataShare:
@@ -57,6 +59,8 @@ namespace Promitor.Agents.Scraper.Validation.Factories
                     return new KubernetesServiceMetricValidator();
                 case ResourceType.LoadBalancer:
                     return new LoadBalancerMetricValidator();
+                case ResourceType.LogAnalytics:
+                    return new LogAnalyticsValidator();
                 case ResourceType.LogicApp:
                     return new LogicAppMetricValidator();
                 case ResourceType.MariaDb:
@@ -65,12 +69,18 @@ namespace Promitor.Agents.Scraper.Validation.Factories
                     return new MonitorAutoscaleMetricValidator();
                 case ResourceType.MySql:
                     return new MySqlMetricValidator();
+                case ResourceType.NatGateway:
+                    return new NatGatewayMetricValidator();
                 case ResourceType.NetworkGateway:
                     return new NetworkGatewayMetricValidator();
                 case ResourceType.NetworkInterface:
                     return new NetworkInterfaceMetricValidator();
                 case ResourceType.PostgreSql:
                     return new PostgreSqlMetricValidator();
+                case ResourceType.PowerBiDedicated:
+                    return new PowerBiDedicatedMetricValidator();
+                case ResourceType.PublicIpAddress:
+                    return new PublicIpAddressMetricValidator();
                 case ResourceType.RedisCache:
                     return new RedisCacheMetricValidator();
                 case ResourceType.RedisEnterpriseCache:
@@ -95,6 +105,8 @@ namespace Promitor.Agents.Scraper.Validation.Factories
                     return new SynapseSqlPoolMetricValidator();
                 case ResourceType.SynapseWorkspace:
                     return new SynapseWorkspaceMetricValidator();
+                case ResourceType.TrafficManager:
+                    return new TrafficManagerMetricValidator();
                 case ResourceType.VirtualMachineScaleSet:
                     return new VirtualMachineScaleSetMetricValidator();
                 case ResourceType.VirtualNetwork:
