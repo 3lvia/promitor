@@ -14,9 +14,11 @@ jobs:
     with:
       image_name: local/scraper:${{ github.sha }}
       project_name: Promitor.Agents.Scraper
+      dockerfile: Dockerfile.Scraper
   scan_resource_discovery:
     name: Scan Resource Discovery Agent
     uses: ./.github/workflows/templates-scan-image.yml
     with:
       image_name: local/resource-discovery:${{ github.sha }}
       project_name: Promitor.Agents.ResourceDiscovery
+      dockerfile: Dockerfile.ResourceDiscovery

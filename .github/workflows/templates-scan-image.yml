@@ -4,6 +4,9 @@ on:
       image_name:
         required: true
         type: string
+      dockerfile:
+        required: true
+        type: string
       project_name:
         required: true
         type: string
@@ -19,7 +22,7 @@ jobs:
 
       - name: Build an image from Dockerfile
         run: |
-          docker build ./src/ --file ./src/${{ inputs.project_name }}/Dockerfile.linux --build-arg VERSION="1.2.3" -t ${{ inputs.image_name }}
+          docker build ./src/ --file ./src/${{ inputs.dockerfile }} --build-arg VERSION="1.2.3" -t ${{ inputs.image_name }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
