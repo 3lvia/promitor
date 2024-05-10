@@ -11,7 +11,7 @@ namespace Promitor.Tests.Unit.Serialization.v1.Providers
     public class StorageQueueDeserializerTests : ResourceDeserializerTest<StorageQueueDeserializer>
     {
         private readonly Mock<IDeserializer<SecretV1>> _secretDeserializer;
-        private readonly Mock<IErrorReporter> _errorReporter = new Mock<IErrorReporter>();
+        private readonly Mock<IErrorReporter> _errorReporter = new();
 
         private readonly StorageQueueDeserializer _deserializer;
 
@@ -98,7 +98,7 @@ namespace Promitor.Tests.Unit.Serialization.v1.Providers
             var sasTokenNode = (YamlMappingNode)node.Children["sasToken"];
 
             var secret = new SecretV1();
-            _secretDeserializer.Setup(d => d.DeserializeObject(sasTokenNode, _errorReporter.Object)).Returns(secret);
+            _secretDeserializer.Setup(d => d.Deserialize(sasTokenNode, _errorReporter.Object)).Returns(secret);
 
             // Act
             var resource = _deserializer.Deserialize(node, _errorReporter.Object);

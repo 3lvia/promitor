@@ -49,5 +49,11 @@
         VirtualNetwork = 44,
         LoadBalancer = 45,
         MySql = 46,
+        LogAnalytics = 47,
+        DataExplorerCluster = 48,
+        NatGateway = 49,
+        PublicIpAddress = 50,
+        TrafficManager = 51,
+        PowerBiDedicated = 52,
     }
 }

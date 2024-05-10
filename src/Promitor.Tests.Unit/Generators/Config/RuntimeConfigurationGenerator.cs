@@ -20,7 +20,7 @@ namespace Promitor.Tests.Unit.Generators.Config
 {
     internal class RuntimeConfigurationGenerator
     {
-        private readonly ScraperRuntimeConfiguration _runtimeConfiguration = new ScraperRuntimeConfiguration();
+        private readonly ScraperRuntimeConfiguration _runtimeConfiguration = new();
 
         private RuntimeConfigurationGenerator(ServerConfiguration serverConfiguration)
         {
@@ -98,7 +98,7 @@ namespace Promitor.Tests.Unit.Generators.Config
             return this;
         }
 
-        public RuntimeConfigurationGenerator WithStatsDMetricSink(int? port = 1234, string host = "automated-test.host", string metricPrefix = "test.")
+        public RuntimeConfigurationGenerator WithStatsDMetricSink(int? port = 1234, string host = "automated-test.host", string metricPrefix = "test.", GenevaConfiguration genevaMetadata = null)
         {
             StatsdSinkConfiguration statsdSinkConfiguration;
             if (string.IsNullOrWhiteSpace(host) && port == null)
@@ -122,6 +122,11 @@ namespace Promitor.Tests.Unit.Generators.Config
                 if (port != null)
                 {
                     statsdSinkConfiguration.Port = port.Value;
+                }
+
+                if (genevaMetadata != null)
+                {
+                    statsdSinkConfiguration.Geneva = genevaMetadata;
                 }
             }
 
@@ -195,12 +200,8 @@ namespace Promitor.Tests.Unit.Generators.Config
                     Verbosity = verbosity
                 };
 
-            if (_runtimeConfiguration.Telemetry == null)
-            {
-                _runtimeConfiguration.Telemetry = new TelemetryConfiguration();
-            }
-
-            _runtimeConfiguration.Telemetry.ContainerLogs = containerLogConfiguration;
+            _runtimeConfiguration.Telemetry ??= new TelemetryConfiguration();
+_runtimeConfiguration.Telemetry.ContainerLogs = containerLogConfiguration;
 
             return this;
         }
@@ -216,11 +217,7 @@ namespace Promitor.Tests.Unit.Generators.Config
                     Verbosity = verbosity
                 };
 
-            if (_runtimeConfiguration.Telemetry == null)
-            {
-                _runtimeConfiguration.Telemetry = new TelemetryConfiguration();
-            }
-
+            _runtimeConfiguration.Telemetry ??= new TelemetryConfiguration();
             _runtimeConfiguration.Telemetry.ApplicationInsights = applicationInsightsTelemetry;
 
             return this;
@@ -228,11 +225,7 @@ namespace Promitor.Tests.Unit.Generators.Config
 
         public RuntimeConfigurationGenerator WithAzureMonitorLogging(bool isEnabled = true, HttpLoggingDelegatingHandler.Level informationLevel = HttpLoggingDelegatingHandler.Level.Headers)
         {
-            if (_runtimeConfiguration.AzureMonitor == null)
-            {
-                _runtimeConfiguration.AzureMonitor = new AzureMonitorConfiguration();
-            }
-
+            _runtimeConfiguration.AzureMonitor ??= new AzureMonitorConfiguration();
             _runtimeConfiguration.AzureMonitor.Logging = new AzureMonitorLoggingConfiguration
             {
                 IsEnabled = isEnabled,
@@ -284,7 +277,14 @@ namespace Promitor.Tests.Unit.Generators.Config
                     configurationBuilder.AppendLine($"    host: {_runtimeConfiguration?.MetricSinks.Statsd.Host}");
                     configurationBuilder.AppendLine($"    port: {_runtimeConfiguration?.MetricSinks.Statsd.Port}");
                     configurationBuilder.AppendLine($"    metricPrefix: {_runtimeConfiguration?.MetricSinks.Statsd.MetricPrefix}");
-                }
+                    configurationBuilder.AppendLine($"    metricFormat: {_runtimeConfiguration?.MetricSinks.Statsd.MetricFormat}");
+                    if (_runtimeConfiguration?.MetricSinks.Statsd.Geneva != null)
+                    {
+                        configurationBuilder.AppendLine("    geneva:");
+                        configurationBuilder.AppendLine($"      account: {_runtimeConfiguration?.MetricSinks.Statsd.Geneva.Account}");
+                        configurationBuilder.AppendLine($"      namespace: {_runtimeConfiguration?.MetricSinks.Statsd.Geneva.Namespace}");
+                    }
+                }               
                 if (_runtimeConfiguration?.MetricSinks.PrometheusScrapingEndpoint != null)
                 {
                     configurationBuilder.AppendLine("  prometheusScrapingEndpoint:");

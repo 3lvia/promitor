@@ -12,16 +12,16 @@ namespace Promitor.Tests.Unit.Core.Scraping.Configuration.Model.Metrics
     public class MetricDefinitionTests
     {
         private readonly PrometheusMetricDefinition _prometheusMetricDefinition =
-            new PrometheusMetricDefinition("promitor_test", "test", new Dictionary<string, string>());
+            new("promitor_test", "test", new Dictionary<string, string>());
 
-        private readonly AzureMetadata _azureMetadata = new AzureMetadata { ResourceGroupName = "global-resource-group", SubscriptionId = "global-subscription-id"};
+        private readonly AzureMetadata _azureMetadata = new() { ResourceGroupName = "global-resource-group", SubscriptionId = "global-subscription-id"};
 
         [Fact]
         public void CreateScrapeDefinition_ResourceOverridesResourceGroupName_UsesOverriddenName()
         {
             // Arrange
             var resource = new ContainerInstanceResourceDefinition(null, "containerInstanceResourceGroup", "containerGroup");
-            var definition = new MetricDefinition(_prometheusMetricDefinition, new Promitor.Core.Scraping.Configuration.Model.Scraping(), new AzureMetricConfiguration(), ResourceType.ContainerInstance, new List<AzureResourceDefinition> { resource });
+            var definition = new MetricDefinition(_prometheusMetricDefinition, new Promitor.Core.Scraping.Configuration.Model.Scraping(), new AzureMetricConfiguration(), new LogAnalyticsConfiguration(), ResourceType.ContainerInstance, new List<AzureResourceDefinition> { resource });
 
             // Act
             var scrapeDefinition = definition.CreateScrapeDefinition(resource, _azureMetadata);
@@ -35,7 +35,7 @@ namespace Promitor.Tests.Unit.Core.Scraping.Configuration.Model.Metrics
         {
             // Arrange
             var resource = new ContainerInstanceResourceDefinition("subscription", null, "containerGroup");
-            var definition = new MetricDefinition(_prometheusMetricDefinition, new Promitor.Core.Scraping.Configuration.Model.Scraping(), new AzureMetricConfiguration(), ResourceType.ContainerInstance, new List<AzureResourceDefinition> { resource });
+            var definition = new MetricDefinition(_prometheusMetricDefinition, new Promitor.Core.Scraping.Configuration.Model.Scraping(), new AzureMetricConfiguration(), new LogAnalyticsConfiguration(), ResourceType.ContainerInstance, new List<AzureResourceDefinition> { resource });
 
             // Act
             var scrapeDefinition = definition.CreateScrapeDefinition(resource, _azureMetadata);
@@ -48,7 +48,7 @@ namespace Promitor.Tests.Unit.Core.Scraping.Configuration.Model.Metrics
         {
             // Arrange
             var resource = new ContainerInstanceResourceDefinition("subscription", "containerInstanceResourceGroup", "containerGroup");
-            var definition = new MetricDefinition(_prometheusMetricDefinition, new Promitor.Core.Scraping.Configuration.Model.Scraping(), new AzureMetricConfiguration(), ResourceType.ContainerInstance, new List<AzureResourceDefinition> { resource });
+            var definition = new MetricDefinition(_prometheusMetricDefinition, new Promitor.Core.Scraping.Configuration.Model.Scraping(), new AzureMetricConfiguration(), new LogAnalyticsConfiguration(), ResourceType.ContainerInstance, new List<AzureResourceDefinition> { resource });
 
             // Act
             var scrapeDefinition = definition.CreateScrapeDefinition(resource, _azureMetadata);
@@ -62,7 +62,7 @@ namespace Promitor.Tests.Unit.Core.Scraping.Configuration.Model.Metrics
         {
             // Arrange
             var resource = new ContainerInstanceResourceDefinition(null, "containerInstanceResourceGroup", "containerGroup");
-            var definition = new MetricDefinition(_prometheusMetricDefinition, new Promitor.Core.Scraping.Configuration.Model.Scraping(), new AzureMetricConfiguration(), ResourceType.ContainerInstance, new List<AzureResourceDefinition> { resource });
+            var definition = new MetricDefinition(_prometheusMetricDefinition, new Promitor.Core.Scraping.Configuration.Model.Scraping(), new AzureMetricConfiguration(), new LogAnalyticsConfiguration(), ResourceType.ContainerInstance, new List<AzureResourceDefinition> { resource });
 
             // Act
             var scrapeDefinition = definition.CreateScrapeDefinition(resource, _azureMetadata);
@@ -76,7 +76,7 @@ namespace Promitor.Tests.Unit.Core.Scraping.Configuration.Model.Metrics
         {
             // Arrange
             var resource = new ContainerInstanceResourceDefinition("subscription", string.Empty, "containerGroup");
-            var definition = new MetricDefinition(_prometheusMetricDefinition, new Promitor.Core.Scraping.Configuration.Model.Scraping(), new AzureMetricConfiguration(), ResourceType.ContainerInstance, new List<AzureResourceDefinition> { resource });
+            var definition = new MetricDefinition(_prometheusMetricDefinition, new Promitor.Core.Scraping.Configuration.Model.Scraping(), new AzureMetricConfiguration(), new LogAnalyticsConfiguration(), ResourceType.ContainerInstance, new List<AzureResourceDefinition> { resource });
 
             // Act
             var scrapeDefinition = definition.CreateScrapeDefinition(resource, _azureMetadata);

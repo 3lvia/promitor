@@ -7,6 +7,8 @@ using Promitor.Core.Metrics.Sinks;
 using Promitor.Core.Scraping.Interfaces;
 using Promitor.Core.Scraping.ResourceTypes;
 using Promitor.Integrations.AzureMonitor;
+using Promitor.Integrations.LogAnalytics;
+using ResourceType = Promitor.Core.Contracts.ResourceType;
 
 namespace Promitor.Core.Scraping.Factories
 {
@@ -28,9 +30,10 @@ namespace Promitor.Core.Scraping.Factories
         /// <param name="metricSinkWriter">Writer to send metrics to all sinks</param>
         /// <param name="azureScrapingSystemMetricsPublisher">Collector to send metrics related to the runtime</param>
         /// <param name="azureMonitorClient">Client to interact with Azure Monitor</param>
-        public IScraper<IAzureResourceDefinition> CreateScraper(ResourceType metricDefinitionResourceType, MetricSinkWriter metricSinkWriter, IAzureScrapingSystemMetricsPublisher azureScrapingSystemMetricsPublisher, AzureMonitorClient azureMonitorClient)
+        /// <param name="logAnalyticsClient">Client to interact with Log Analytics</param>
+        public IScraper<IAzureResourceDefinition> CreateScraper(ResourceType metricDefinitionResourceType, MetricSinkWriter metricSinkWriter, IAzureScrapingSystemMetricsPublisher azureScrapingSystemMetricsPublisher, AzureMonitorClient azureMonitorClient, LogAnalyticsClient logAnalyticsClient)
         {
-            var scraperConfiguration = new ScraperConfiguration(azureMonitorClient, metricSinkWriter, azureScrapingSystemMetricsPublisher, _logger);
+            var scraperConfiguration = new ScraperConfiguration(azureMonitorClient, logAnalyticsClient, metricSinkWriter, azureScrapingSystemMetricsPublisher, _logger);
 
             switch (metricDefinitionResourceType)
             {
@@ -54,6 +57,8 @@ namespace Promitor.Core.Scraping.Factories
                     return new ContainerRegistryScraper(scraperConfiguration);
                 case ResourceType.CosmosDb:
                     return new CosmosDbScraper(scraperConfiguration);
+                case ResourceType.DataExplorerCluster:
+                    return new DataExplorerClusterScraper(scraperConfiguration);
                 case ResourceType.DataFactory:
                     return new DataFactoryScraper(scraperConfiguration);
                 case ResourceType.DataShare:
@@ -80,6 +85,8 @@ namespace Promitor.Core.Scraping.Factories
                     return new KubernetesServiceScraper(scraperConfiguration);
                 case ResourceType.LoadBalancer:
                     return new LoadBalancerScraper(scraperConfiguration);
+                case ResourceType.LogAnalytics:
+                    return new LogAnalyticsScraper(scraperConfiguration);
                 case ResourceType.LogicApp:
                     return new LogicAppScraper(scraperConfiguration);
                 case ResourceType.MariaDb:
@@ -88,12 +95,18 @@ namespace Promitor.Core.Scraping.Factories
                     return new MonitorAutoscaleScraper(scraperConfiguration);
                 case ResourceType.MySql:
                     return new MySqlScraper(scraperConfiguration);
+                case ResourceType.NatGateway:
+                    return new NatGatewayScraper(scraperConfiguration);
                 case ResourceType.NetworkGateway:
                     return new NetworkGatewayScraper(scraperConfiguration);
                 case ResourceType.NetworkInterface:
                     return new NetworkInterfaceScraper(scraperConfiguration);
                 case ResourceType.PostgreSql:
                     return new PostgreSqlScraper(scraperConfiguration);
+                case ResourceType.PowerBiDedicated:
+                    return new PowerBiDedicatedScraper(scraperConfiguration);
+                case ResourceType.PublicIpAddress:
+                    return new PublicIpAddressScraper(scraperConfiguration);
                 case ResourceType.RedisCache:
                     return new RedisCacheScraper(scraperConfiguration);
                 case ResourceType.RedisEnterpriseCache:
@@ -118,6 +131,8 @@ namespace Promitor.Core.Scraping.Factories
                     return new SynapseSqlPoolScraper(scraperConfiguration);
                 case ResourceType.SynapseWorkspace:
                     return new SynapseWorkspaceScraper(scraperConfiguration);
+                case ResourceType.TrafficManager:
+                    return new TrafficManagerScraper(scraperConfiguration);
                 case ResourceType.VirtualMachine:
                     return new VirtualMachineScraper(scraperConfiguration);
                 case ResourceType.VirtualMachineScaleSet:

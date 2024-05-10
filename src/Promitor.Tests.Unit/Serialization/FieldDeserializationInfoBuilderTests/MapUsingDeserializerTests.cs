@@ -6,8 +6,7 @@ namespace Promitor.Tests.Unit.Serialization.FieldDeserializationInfoBuilderTests
 {
     public class MapUsingDeserializerTests : UnitTest
     {
-        private readonly FieldDeserializationInfoBuilder<TestConfig, string> _builder =
-            new FieldDeserializationInfoBuilder<TestConfig, string>();
+        private readonly FieldDeserializationInfoBuilder<TestConfig, string> _builder = new();
 
         public MapUsingDeserializerTests()
         {
@@ -18,7 +17,7 @@ namespace Promitor.Tests.Unit.Serialization.FieldDeserializationInfoBuilderTests
         public void MapUsingDeserializer_SetsDeserializer()
         {
             // Arrange
-            var deserializer = Mock.Of<IDeserializer>();
+            var deserializer = Mock.Of<IDeserializer<object>>();
 
             // Act
             _builder.MapUsingDeserializer(deserializer);
@@ -32,7 +31,7 @@ namespace Promitor.Tests.Unit.Serialization.FieldDeserializationInfoBuilderTests
         public void MapUsingDeserializer_ReturnsBuilder()
         {
             // Arrange
-            var deserializer = Mock.Of<IDeserializer>();
+            var deserializer = Mock.Of<IDeserializer<object>>();
 
             // Act
             var result = _builder.MapUsingDeserializer(deserializer);

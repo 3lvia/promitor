@@ -17,9 +17,10 @@ namespace Promitor.Tests.Unit.Serialization.v1.Core
         private readonly Mock<IDeserializer<AzureMetricConfigurationV1>> _azureMetricConfigurationDeserializer;
         private readonly Mock<IDeserializer<ScrapingV1>> _scrapingDeserializer;
         private readonly Mock<IAzureResourceDeserializerFactory> _resourceDeserializerFactory;
-        private readonly Mock<IErrorReporter> _errorReporter = new Mock<IErrorReporter>();
+        private readonly Mock<IErrorReporter> _errorReporter = new();
+        private readonly Mock<IDeserializer<LogAnalyticsConfigurationV1>> _logAnalyticsConfigurationDeserializer = new();
         private readonly Mock<IDeserializer<AzureResourceDiscoveryGroupDefinitionV1>> _resourceDiscoveryGroupDeserializer =
-            new Mock<IDeserializer<AzureResourceDiscoveryGroupDefinitionV1>>();
+            new();
 
         private readonly MetricDefinitionDeserializer _deserializer;
 
@@ -31,6 +32,7 @@ namespace Promitor.Tests.Unit.Serialization.v1.Core
 
             _deserializer = new MetricDefinitionDeserializer(
                 _azureMetricConfigurationDeserializer.Object,
+                _logAnalyticsConfigurationDeserializer.Object,
                 _scrapingDeserializer.Object,
                 _resourceDiscoveryGroupDeserializer.Object,
                 _resourceDeserializerFactory.Object,
@@ -173,7 +175,7 @@ namespace Promitor.Tests.Unit.Serialization.v1.Core
             var configurationNode = (YamlMappingNode)node.Children["azureMetricConfiguration"];
             var configuration = new AzureMetricConfigurationV1();
 
-            _azureMetricConfigurationDeserializer.Setup(d => d.DeserializeObject(configurationNode, _errorReporter.Object)).Returns(configuration);
+            _azureMetricConfigurationDeserializer.Setup(d => d.Deserialize(configurationNode, _errorReporter.Object)).Returns(configuration);
 
             // Act
             var definition = _deserializer.Deserialize(node, _errorReporter.Object);
@@ -200,16 +202,60 @@ namespace Promitor.Tests.Unit.Serialization.v1.Core
         }
 
         [Fact]
-        public void Deserialize_AzureMetricConfigurationNotSupplied_ReportsError()
+        public void Deserialize_AzureMetricConfigurationNotSuppliedWithNotLogAnalyticsResource_ReportsError()
         {
+            const string yamlText =
+                @"metrics:
+                    name: 'test_metrics'
+                    description: 'some metric'
+                    resourceType: 'StorageAccount'";
             // Arrange
-            var node = YamlUtils.CreateYamlNode("name: 'test_metric'");
+            var node = YamlUtils.CreateYamlNode(yamlText);
+            var metricNode = (YamlMappingNode)node.Children["metrics"];
 
             // Act / Assert
             YamlAssert.ReportsErrorForProperty(
                 _deserializer,
-                node,
+                metricNode,
                 "azureMetricConfiguration");
+        }
+
+        [Fact]
+        public void Deserialize_AzureMetricConfigurationNotSuppliedWithLogAnalyticsResource_ReportsNoError()
+        {
+            const string yamlText =
+                @"metrics:
+                    name: 'test_metrics'
+                    description: 'some metric'
+                    resourceType: 'LogAnalytics'";
+            // Arrange
+            var node = YamlUtils.CreateYamlNode(yamlText);
+            var metricNode = (YamlMappingNode)node.Children["metrics"];
+
+            // Act / Assert
+            YamlAssert.ReportsNoErrorForProperty(
+                _deserializer,
+                metricNode,
+                "azureMetricConfiguration");
+        }
+
+        [Fact]
+        public void Deserialize_LogAnalyticsNotSuppliedWithLogAnalyticsResource_ReportsError()
+        {
+            const string yamlText =
+                @"metrics:
+                    name: 'test_metrics'
+                    description: 'some metric'
+                    resourceType: 'LogAnalytics'";
+            // Arrange
+            var node = YamlUtils.CreateYamlNode(yamlText);
+            var metricNode = (YamlMappingNode)node.Children["metrics"];
+
+            // Act / Assert
+            YamlAssert.ReportsErrorForProperty(
+                _deserializer,
+                metricNode,
+                "logAnalytics");
         }
 
         [Fact]
@@ -223,7 +269,7 @@ namespace Promitor.Tests.Unit.Serialization.v1.Core
             var scrapingNode = (YamlMappingNode)node.Children["scraping"];
             var scraping = new ScrapingV1();
 
-            _scrapingDeserializer.Setup(d => d.DeserializeObject(scrapingNode, _errorReporter.Object)).Returns(scraping);
+            _scrapingDeserializer.Setup(d => d.Deserialize(scrapingNode, _errorReporter.Object)).Returns(scraping);
 
             // Act
             var definition = _deserializer.Deserialize(node, _errorReporter.Object);
@@ -266,7 +312,7 @@ resources:
 
             var resources = new List<AzureResourceDefinitionV1>
             {
-                new AzureResourceDefinitionV1 { ResourceGroupName = "promitor-group" }
+                new() { ResourceGroupName = "promitor-group" }
             };
             resourceDeserializer.Setup(
                 d => d.Deserialize((YamlSequenceNode)node.Children["resources"], _errorReporter.Object))
@@ -427,7 +473,7 @@ resources:
 - resourceUri: Microsoft.ServiceBus/namespaces/promitor-messaging-2";
             var node = YamlUtils.CreateYamlNode(yamlText);
 
-            SetupResourceDeserializer(node, new List<AzureResourceDefinitionV1> { new AzureResourceDefinitionV1() });
+            SetupResourceDeserializer(node, new List<AzureResourceDefinitionV1> { new() });
 
             // Act
             _deserializer.Deserialize(node, _errorReporter.Object);
@@ -467,7 +513,7 @@ resourceDiscoveryGroups:
             var node = YamlUtils.CreateYamlNode(yamlText);
             var resourceDiscoveryGroups = new List<AzureResourceDiscoveryGroupDefinitionV1>
             {
-                new AzureResourceDiscoveryGroupDefinitionV1()
+                new()
             };
             _resourceDiscoveryGroupDeserializer.Setup(
                 d => d.Deserialize(It.IsAny<YamlSequenceNode>(), It.IsAny<IErrorReporter>())).Returns(resourceDiscoveryGroups);

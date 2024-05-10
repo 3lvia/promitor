@@ -15,6 +15,8 @@
 <a href="https://github.com/users/tomkerkhove/sponsorship" rel="nofollow"><img src="https://img.shields.io/badge/Donate%20via-GitHub-blue.svg?style=flat-square" alt="Donate"></a> <a href="https://app.fossa.com/projects/git%2Bgithub.com%2Ftomkerkhove%2Fpromitor?ref=badge_shield" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftomkerkhove%2Fpromitor.svg?type=shield"/></a>
 </p>
 
+> ⚠️ Promitor heavily relies on the community to introduce new features or patch bugs as I cannot do this alone anymore, learn more [here](https://blog.tomkerkhove.be/2023/12/09/the-future-of-promitor/).
+
 **Promitor** is an Azure Monitor scraper which makes the metrics available through a scraping endpoint for Prometheus or push to a StatsD server.
 
 ## Documentation
@@ -51,6 +53,19 @@ Information about making changes to Promitor can be found [here](contributing.md
 ### Testing Infrastructure
 
 Our testing infrastructure is managed through Bicep and is open to contributions on [promitor/testing-infrastructure](https://github.com/promitor/testing-infrastructure).
+
+### Image Overview
+
+Here is an overview of the available images:
+
+| Image name | Use-Case | Supported? | Tag Format |
+|:-----------|:---------|:-----------|:-----------|
+| `ghcr.io/tomkerkhove/promitor-agent-scraper` | Use Promitor Scraper in production | Yes | `:{SemVer}` |
+| `ghcr.io/tomkerkhove/promitor-agent-resource-discovery` | Use Promitor Resource Discovery in production | Yes | `:{SemVer}` |
+| `ghcr.io/tomkerkhove/promitor-agent-scraper-preview` | Preview image of Promitor Scraper vNext created off of `master` branch. | No, experimentation only | `:{SemVer}` & `:{SemVer}-{Commit}` |
+| `ghcr.io/tomkerkhove/promitor-agent-resource-discovery-preview` | Preview image of Promitor Resource Discovery vNext created off of `master` branch. | No, experimentation only | `:{SemVer}` & `:{SemVer}-{Commit}` |
+| `ghcr.io/tomkerkhove/promitor-agent-scraper-ci` | CI image of Promitor Scraper created from a PR. | No, used for testing/ease-of-contribution | `:pr{pr-id}` |
+| `ghcr.io/tomkerkhove/promitor-agent-resource-discovery-ci` | CI image of Promitor Resource Discovery created from a PR. | No, used for testing/ease-of-contribution | `:pr{pr-id}` |
 
 ## Support
 
